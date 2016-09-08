@@ -69,7 +69,7 @@ public class NativeUtil {
 		return be;
 	}
 
-	private static void saveBitmap(Bitmap bit, int quality, String fileName,
+	public static void saveBitmap(Bitmap bit, int quality, String fileName,
 			boolean optimize) {
 
 		compressBitmap(bit, bit.getWidth(), bit.getHeight(), quality,

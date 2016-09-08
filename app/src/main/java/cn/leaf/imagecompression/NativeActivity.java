@@ -5,8 +5,8 @@ import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.Environment;
 import android.provider.MediaStore;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
@@ -16,7 +16,8 @@ import com.bumptech.glide.Glide;
 
 import java.io.File;
 
-import cn.leaf.imagecompression.util.CompressionUtil;
+import cn.leaf.imagecompression.util.IMGCompression;
+import cn.leaf.imagecompression.util.OnCompressionListener;
 import cn.leaf.imagecompression.util.Util;
 
 /**
@@ -26,12 +27,10 @@ public class NativeActivity extends Activity {
     private TextView fileSize,imageSize,thumbFileSize,thumbImageSize;
     private ImageView image,thumbImage;
     private Button button,button1;
-    private CompressionUtil util;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_libjpeg);
-        util = new CompressionUtil();
         fileSize = (TextView) findViewById(R.id.file_size);
         imageSize = (TextView) findViewById(R.id.image_size);
         thumbFileSize = (TextView) findViewById(R.id.thumb_file_size);
@@ -102,10 +101,22 @@ public class NativeActivity extends Activity {
 
     private void getBitmap(File file){
         Glide.with(this).load(file.getPath()).into(image);
-        File tmp =  util.thirdCompress(file, MainActivity.dir + MainActivity.nativeFile);
-        Glide.with(this).load(tmp.getPath()).into(thumbImage);
-        thumbFileSize.setText(tmp.length() / 1024 + "k");
-        thumbImageSize.setText(Util.getImageSize(tmp.getPath())[0] + " * " + Util.getImageSize(tmp.getPath())[1]);
+        IMGCompression.get(this).loadFile(file)
+                .setSavePath(MainActivity.dir + MainActivity.nativeFile)
+                .setListener(new OnCompressionListener() {
+                    @Override
+                    public void onSuccess(File file) {
+                        Glide.with(NativeActivity.this).load(file.getPath()).into(thumbImage);
+                        thumbFileSize.setText(file.length() / 1024 + "k");
+                        thumbImageSize.setText(Util.getImageSize(file.getPath())[0] + " * "
+                                + Util.getImageSize(file.getPath())[1]);
+                    }
+                    @Override
+                    public void onError(Throwable e) {
+                        Log.e("---",e.getMessage());
+                    }
+                }).start();
+
     }
 
 }

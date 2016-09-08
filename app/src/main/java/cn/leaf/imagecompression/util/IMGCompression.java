@@ -1,5 +1,6 @@
 package cn.leaf.imagecompression.util;
 
+import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Matrix;
@@ -14,22 +15,86 @@ import java.io.IOException;
 
 /**
  * 图片压缩
- * Created by leaf on 2016/9/7.
+ * Created by leaf on 2016/9/8.
  */
-public class CompressionUtil {
-    private static final String TAG = "CompressionUtil";
+public class IMGCompression {
+    private static final String TAG = "IMGCompression";
+    private OnCompressionListener mListener;
+    private File mFile;
+    private String mSavePath;
+    private static IMGCompression IMG;
+    public static IMGCompression get(Context context){
+        if(IMG==null)
+            IMG = new IMGCompression();
+        return IMG;
+    }
 
+    /**
+     * 要压缩的文件
+     * @param file
+     * @return
+     */
+    public IMGCompression loadFile(File file){
+        this.mFile = file;
+        return this;
+    }
+
+    /**
+     * 监听
+     * @param listener
+     * @return
+     */
+    public IMGCompression setListener(OnCompressionListener listener){
+        this.mListener = listener;
+        return this;
+    }
+
+    /**
+     * 保存路径
+     * @param savePath
+     * @return
+     */
+    public IMGCompression setSavePath(String savePath){
+        this.mSavePath = savePath;
+        return this;
+    }
+
+    /**
+     * 开始压缩
+     * @return
+     */
+    public IMGCompression start(){
+        try {
+            File file =  compress(mFile,mSavePath);
+            if(mListener!=null)
+                mListener.onSuccess(file);
+        }catch (Exception e){
+            if(mListener!=null)
+                mListener.onError(e);
+        }
+        return this;
+    }
+//    private static File getPhotoCacheDir(Context context, String cacheName) {
+//        File cacheDir = context.getCacheDir();
+//        if (cacheDir != null) {
+//            File result = new File(cacheDir, cacheName);
+//            if (!result.mkdirs() && (!result.exists() || !result.isDirectory())) {
+//                return null;
+//            }
+//            return result;
+//        }
+//
+//        return null;
+//    }
     /**
      * 图片压缩
      * @param file
      * @param thumb
      * @return
      */
-    public File thirdCompress(@NonNull File file,@NonNull String thumb) {
-//        String thumb = savePath;
+    private File compress(@NonNull File file,@NonNull String thumb) {
         double size;
         String filePath = file.getAbsolutePath();
-
         int angle = getImageSpinAngle(filePath);
         int width = getImageSize(filePath)[0];
         int height = getImageSize(filePath)[1];
@@ -38,47 +103,113 @@ public class CompressionUtil {
 
         width = thumbW > thumbH ? thumbH : thumbW;
         height = thumbW > thumbH ? thumbW : thumbH;
-
         double scale = ((double) width / height);
+        //        常见照片比例
+        //        1:1--1
+        //        3:4--0.75
+        //        13:17--0.7647058823529411
+        //        11:15--0.7333333333333333
+        //        8:11--0.7272727272727273
+        //        5:7--0.7142857142857143
+        //        2:3--0.6666666666666666
+        //        3:5--0.6
+        //        9:16--0.5625
+        //        1:2--0.5
+
+        //摄像头分辨率
+        //      2100万  5760x3840
+        //      1600万  4928×3264
+        //      1300万  3120 *4160
+        //      1000万  3840 x 2560
+        //      800万   3200 x 2560
+        if(scale<=0.5){
+            //1:？
+        }else if(scale>0.5&&scale<=0.5625){
+            //1:2 -- 9:16
+        }else if(scale>0.5626&&scale<0.75){
+            //9:16 -- 3:4
+        }else{
+            //3:4
+        }
 
         if (scale <= 1 && scale > 0.5625) {
-            if (height < 1664) {
+            if (height < 1920) {
                 if (file.length() / 1024 < 150) return file;
-
-                size = (width * height) / Math.pow(1664, 2) * 150;
+                size = (width * height) / Math.pow(1920, 2) * 150;
                 size = size < 60 ? 60 : size;
-            } else if (height >= 1664 && height < 4990) {
+            } else if (height >= 1920 && height < 4928) {
                 thumbW = width / 2;
                 thumbH = height / 2;
-                size = (thumbW * thumbH) / Math.pow(2495, 2) * 300;
+                size = (thumbW * thumbH) / Math.pow(2468, 2) * 300;
                 size = size < 60 ? 60 : size;
-            } else if (height >= 4990 && height < 10240) {
+            } else if (height >= 4928 && height < 4928*2) {
                 thumbW = width / 4;
                 thumbH = height / 4;
-                size = (thumbW * thumbH) / Math.pow(2560, 2) * 300;
+                size = (thumbW * thumbH) / Math.pow(2468, 2) * 300;
                 size = size < 100 ? 100 : size;
             } else {
-                int multiple = height / 1280 == 0 ? 1 : height / 1280;
+                int multiple = height / 1920 == 0 ? 1 : height / 1920;
                 thumbW = width / multiple;
                 thumbH = height / multiple;
-                size = (thumbW * thumbH) / Math.pow(2560, 2) * 300;
+                size = (thumbW * thumbH) / Math.pow(2468, 2) * 300;
                 size = size < 100 ? 100 : size;
             }
         } else if (scale <= 0.5625 && scale > 0.5) {
-            if (height < 1280 && file.length() / 1024 < 200) return file;
-
-            int multiple = height / 1280 == 0 ? 1 : height / 1280;
+            //1:2
+            if (height < 1920 && file.length() / 1024 < 200) return file;
+            int multiple = height / 1920 == 0 ? 1 : height / 1920;
             thumbW = width / multiple;
             thumbH = height / multiple;
             size = (thumbW * thumbH) / (1440.0 * 2560.0) * 400;
             size = size < 100 ? 100 : size;
         } else {
+            //1:?
             int multiple = (int) Math.ceil(height / (1280.0 / scale));
             thumbW = width / multiple;
             thumbH = height / multiple;
             size = ((thumbW * thumbH) / (1280.0 * (1280 / scale))) * 500;
             size = size < 100 ? 100 : size;
         }
+
+
+//        if (scale <= 1 && scale > 0.5625) {
+//            if (height < 1664) {
+//                if (file.length() / 1024 < 150) return file;
+//                size = (width * height) / Math.pow(1664, 2) * 150;
+//                size = size < 60 ? 60 : size;
+//            } else if (height >= 1664 && height < 4990) {
+//                thumbW = width / 2;
+//                thumbH = height / 2;
+//                size = (thumbW * thumbH) / Math.pow(2495, 2) * 300;
+//                size = size < 60 ? 60 : size;
+//            } else if (height >= 4990 && height < 10240) {
+//                thumbW = width / 4;
+//                thumbH = height / 4;
+//                size = (thumbW * thumbH) / Math.pow(2560, 2) * 300;
+//                size = size < 100 ? 100 : size;
+//            } else {
+//                int multiple = height / 1280 == 0 ? 1 : height / 1280;
+//                thumbW = width / multiple;
+//                thumbH = height / multiple;
+//                size = (thumbW * thumbH) / Math.pow(2560, 2) * 300;
+//                size = size < 100 ? 100 : size;
+//            }
+//        } else if (scale <= 0.5625 && scale > 0.5) {
+//            //1:2
+//            if (height < 1280 && file.length() / 1024 < 200) return file;
+//            int multiple = height / 1280 == 0 ? 1 : height / 1280;
+//            thumbW = width / multiple;
+//            thumbH = height / multiple;
+//            size = (thumbW * thumbH) / (1440.0 * 2560.0) * 400;
+//            size = size < 100 ? 100 : size;
+//        } else {
+//            //1:?
+//            int multiple = (int) Math.ceil(height / (1280.0 / scale));
+//            thumbW = width / multiple;
+//            thumbH = height / multiple;
+//            size = ((thumbW * thumbH) / (1280.0 * (1280 / scale))) * 500;
+//            size = size < 100 ? 100 : size;
+//        }
 
         return compress(filePath, thumb, thumbW, thumbH, angle, (long) size);
     }
@@ -88,7 +219,7 @@ public class CompressionUtil {
      *
      * @param imagePath the path of image
      */
-    public int[] getImageSize(String imagePath) {
+    private int[] getImageSize(String imagePath) {
         int[] res = new int[2];
 
         BitmapFactory.Options options = new BitmapFactory.Options();
@@ -225,9 +356,9 @@ public class CompressionUtil {
         int options = 100;
         bitmap.compress(Bitmap.CompressFormat.JPEG, options, stream);
 
-        while (stream.toByteArray().length / 1024 > size && options > 6) {
+        while (stream.toByteArray().length / 1024 > size && options > 3) {
             stream.reset();
-            options -= 6;
+            options -= 3;
             bitmap.compress(Bitmap.CompressFormat.JPEG, options, stream);
         }
 

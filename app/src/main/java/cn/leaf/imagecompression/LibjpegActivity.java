@@ -30,6 +30,7 @@ import cn.leaf.imagecompression.util.Util;
 
 /**
  * Created by leaf on 2016/9/7.
+ *
  */
 public class LibjpegActivity extends Activity {
     private TextView fileSize,imageSize,thumbFileSize,thumbImageSize;
