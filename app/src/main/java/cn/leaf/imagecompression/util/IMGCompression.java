@@ -3,7 +3,9 @@ package cn.leaf.imagecompression.util;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
 import android.graphics.Matrix;
+import android.graphics.Rect;
 import android.media.ExifInterface;
 import android.support.annotation.NonNull;
 import android.util.Log;
@@ -98,83 +100,59 @@ public class IMGCompression {
         int angle = getImageSpinAngle(filePath);
         int width = getImageSize(filePath)[0];
         int height = getImageSize(filePath)[1];
-        int thumbW = width % 2 == 1 ? width + 1 : width;
-        int thumbH = height % 2 == 1 ? height + 1 : height;
-
+        int thumbW = width;
+        int thumbH = height;
         width = thumbW > thumbH ? thumbH : thumbW;
         height = thumbW > thumbH ? thumbW : thumbH;
         double scale = ((double) width / height);
         //        常见照片比例
         //        1:1--1
+        //        4:5--0.8
         //        3:4--0.75
         //        13:17--0.7647058823529411
         //        11:15--0.7333333333333333
         //        8:11--0.7272727272727273
         //        5:7--0.7142857142857143
         //        2:3--0.6666666666666666
+        //        5:8--0.625
         //        3:5--0.6
         //        9:16--0.5625
         //        1:2--0.5
+        //        3:7--0.428571429
 
-        //摄像头分辨率
-        //      2100万  5760x3840
-        //      1600万  4928×3264
-        //      1300万  3120 *4160
-        //      1000万  3840 x 2560
-        //      800万   3200 x 2560
-        if(scale<=0.5){
-            //1:？
-        }else if(scale>0.5&&scale<=0.5625){
-            //1:2 -- 9:16
-        }else if(scale>0.5626&&scale<0.75){
-            //9:16 -- 3:4
-        }else{
-            //3:4
-        }
-
-        if (scale <= 1 && scale > 0.5625) {
-            if (height < 1920) {
-                if (file.length() / 1024 < 150) return file;
-                size = (width * height) / Math.pow(1920, 2) * 150;
+        //QQ  960px
+        //Wechat 1280px
+        if(scale<=1 && scale > 0.5625){
+            //包含大部分常见比例图片
+            if (file.length() / 1024 < 150) return file;
+            if(height <= 1280){
+                size = (width * height) / Math.pow(1280, 2) * 150;
                 size = size < 60 ? 60 : size;
-            } else if (height >= 1920 && height < 4928) {
-                thumbW = width / 2;
-                thumbH = height / 2;
-                size = (thumbW * thumbH) / Math.pow(2468, 2) * 300;
+            }else{
+                double multiple = height / 1280.0;
+                thumbW = (int)(width / multiple);
+                thumbH = 1280;
+                size = (thumbW * thumbH) / Math.pow(2560, 2) * 300;
                 size = size < 60 ? 60 : size;
-            } else if (height >= 4928 && height < 4928*2) {
-                thumbW = width / 4;
-                thumbH = height / 4;
-                size = (thumbW * thumbH) / Math.pow(2468, 2) * 300;
-                size = size < 100 ? 100 : size;
-            } else {
-                int multiple = height / 1920 == 0 ? 1 : height / 1920;
-                thumbW = width / multiple;
-                thumbH = height / multiple;
-                size = (thumbW * thumbH) / Math.pow(2468, 2) * 300;
-                size = size < 100 ? 100 : size;
             }
-        } else if (scale <= 0.5625 && scale > 0.5) {
-            //1:2
-            if (height < 1920 && file.length() / 1024 < 200) return file;
-            int multiple = height / 1920 == 0 ? 1 : height / 1920;
-            thumbW = width / multiple;
-            thumbH = height / multiple;
-            size = (thumbW * thumbH) / (1440.0 * 2560.0) * 400;
-            size = size < 100 ? 100 : size;
-        } else {
-            //1:?
+        }
+//        else if(scale<=5625 && scale > 0.4285){
+//
+//        }
+        else{
+            //长图
+            if(file.length()/1024<300)return file;
             int multiple = (int) Math.ceil(height / (1280.0 / scale));
             thumbW = width / multiple;
             thumbH = height / multiple;
-            size = ((thumbW * thumbH) / (1280.0 * (1280 / scale))) * 500;
+            size = ((thumbW * thumbH) / (1280.0 * (1280 / scale))) * 300;
             size = size < 100 ? 100 : size;
         }
-
 
 //        if (scale <= 1 && scale > 0.5625) {
 //            if (height < 1664) {
 //                if (file.length() / 1024 < 150) return file;
+//
 //                size = (width * height) / Math.pow(1664, 2) * 150;
 //                size = size < 60 ? 60 : size;
 //            } else if (height >= 1664 && height < 4990) {
@@ -195,15 +173,14 @@ public class IMGCompression {
 //                size = size < 100 ? 100 : size;
 //            }
 //        } else if (scale <= 0.5625 && scale > 0.5) {
-//            //1:2
 //            if (height < 1280 && file.length() / 1024 < 200) return file;
+//
 //            int multiple = height / 1280 == 0 ? 1 : height / 1280;
 //            thumbW = width / multiple;
 //            thumbH = height / multiple;
 //            size = (thumbW * thumbH) / (1440.0 * 2560.0) * 400;
 //            size = size < 100 ? 100 : size;
 //        } else {
-//            //1:?
 //            int multiple = (int) Math.ceil(height / (1280.0 / scale));
 //            thumbW = width / multiple;
 //            thumbH = height / multiple;
@@ -211,8 +188,11 @@ public class IMGCompression {
 //            size = size < 100 ? 100 : size;
 //        }
 
+
         return compress(filePath, thumb, thumbW, thumbH, angle, (long) size);
     }
+
+
 
     /**
      * 获取图像长宽
@@ -274,9 +254,10 @@ public class IMGCompression {
             }
         }
         options.inJustDecodeBounds = false;
-
-        return BitmapFactory.decodeFile(imagePath, options);
+        Bitmap bit =  BitmapFactory.decodeFile(imagePath, options);
+        return Bitmap.createScaledBitmap(bit, width, height, true);
     }
+
 
     /**
      * 获得图像旋转角
@@ -356,9 +337,9 @@ public class IMGCompression {
         int options = 100;
         bitmap.compress(Bitmap.CompressFormat.JPEG, options, stream);
 
-        while (stream.toByteArray().length / 1024 > size && options > 3) {
+        while (stream.toByteArray().length / 1024 > size && options > 6) {
             stream.reset();
-            options -= 3;
+            options -= 6;
             bitmap.compress(Bitmap.CompressFormat.JPEG, options, stream);
         }
 
