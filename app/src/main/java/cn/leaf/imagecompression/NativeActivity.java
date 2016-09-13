@@ -101,8 +101,10 @@ public class NativeActivity extends Activity {
 
     private void getBitmap(File file){
         Glide.with(this).load(file.getPath()).into(image);
+        String str =  file.getName().substring(0, file.getName().indexOf("."));
+        Log.e("---路径",MainActivity.dir + "/"+str+".jpg");
         IMGCompression.get(this).loadFile(file)
-                .setSavePath(MainActivity.dir + MainActivity.nativeFile)
+                .setSavePath(MainActivity.dir + "/"+str+".jpg")
                 .setListener(new OnCompressionListener() {
                     @Override
                     public void onSuccess(File file) {
@@ -111,9 +113,10 @@ public class NativeActivity extends Activity {
                         thumbImageSize.setText(Util.getImageSize(file.getPath())[0] + " * "
                                 + Util.getImageSize(file.getPath())[1]);
                     }
+
                     @Override
                     public void onError(Throwable e) {
-                        Log.e("---",e.getMessage());
+                        Log.e("---", e.getMessage());
                     }
                 }).start();
 

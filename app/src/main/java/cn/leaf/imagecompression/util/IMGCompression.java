@@ -102,9 +102,8 @@ public class IMGCompression {
         int height = getImageSize(filePath)[1];
         int thumbW = width;
         int thumbH = height;
-        width = thumbW > thumbH ? thumbH : thumbW;
-        height = thumbW > thumbH ? thumbW : thumbH;
-        double scale = ((double) width / height);
+        int maxLength = thumbW > thumbH ? thumbW : thumbH;
+        double scale = thumbW > thumbH?((double) height / width):((double) width / height);
         //        常见照片比例
         //        1:1--1
         //        4:5--0.8
@@ -122,31 +121,50 @@ public class IMGCompression {
 
         //QQ  960px
         //Wechat 1280px
-        if(scale<=1 && scale > 0.5625){
-            //包含大部分常见比例图片
-            if (file.length() / 1024 < 150) return file;
-            if(height <= 1280){
+
+        if(scale<=1 && scale >= 0.5625){
+            //1:1---9:16  包含大部分常见比例图片
+            Log.e("----属性1","比例："+scale+"-最长边："+maxLength+"-文件大小："+file.length() / 1024);
+            if (file.length() / 1024 < 100) return file;
+            if(maxLength <= 1280){
                 size = (width * height) / Math.pow(1280, 2) * 150;
                 size = size < 60 ? 60 : size;
             }else{
-                double multiple = height / 1280.0;
-                thumbW = (int)(width / multiple);
-                thumbH = 1280;
+                double multiple = maxLength / 1280.0;
+                thumbW = width>=height?1280:(int)(width / multiple);
+                thumbH = width>=height?(int)(height / multiple):1280;
                 size = (thumbW * thumbH) / Math.pow(2560, 2) * 300;
                 size = size < 60 ? 60 : size;
             }
-        }
-//        else if(scale<=5625 && scale > 0.4285){
-//
-//        }
-        else{
+        }else if(scale<0.5625 && scale > 0.4285){
+            //9:16---- 3:7
+            Log.e("----属性2","比例："+scale+"-最长边："+maxLength+"-文件大小："+file.length() / 1024);
+            if (file.length() / 1024 < 150) return file;
+            if(maxLength <= 1280){
+                size = (thumbW * thumbH) / (1440.0 * 2560.0) * 300;
+                size = size < 100 ? 100 : size;
+            }else{
+                double multiple = maxLength / 1280.0;
+                thumbW = width>=height?1280:(int)(width / multiple);
+                thumbH = width>=height?(int)(height / multiple):1280;
+                size = (thumbW * thumbH) / (1440.0 * 2560.0) * 300;
+                size = size < 100 ? 100 : size;
+            }
+        }else{
             //长图
+            Log.e("----属性3","比例："+scale+"-最长边："+maxLength+"-文件大小："+file.length() / 1024);
             if(file.length()/1024<300)return file;
-            int multiple = (int) Math.ceil(height / (1280.0 / scale));
-            thumbW = width / multiple;
-            thumbH = height / multiple;
-            size = ((thumbW * thumbH) / (1280.0 * (1280 / scale))) * 300;
-            size = size < 100 ? 100 : size;
+            if(width<=1280||height<=1280){
+                size = ((thumbW * thumbH) / (maxLength * (1280 / scale))) * 500;
+                size = size < file.length()/1024 ? size : file.length()/1024;
+            }else{
+                double multiple = width>height?height / 1280.0:width/1280.0;
+                thumbW =(int) (width / multiple);
+                thumbH = (int)(height / multiple);
+                size = ((thumbW * thumbH) / (maxLength * (1280 / scale))) * 500;
+                size = size < file.length()/1024 ? size : file.length()/1024;
+            }
+
         }
 
 //        if (scale <= 1 && scale > 0.5625) {
@@ -255,6 +273,7 @@ public class IMGCompression {
         }
         options.inJustDecodeBounds = false;
         Bitmap bit =  BitmapFactory.decodeFile(imagePath, options);
+        Log.e("文件大小=--"+options.inSampleSize,bit.getRowBytes() * bit.getHeight()/1024+"kb");
         return Bitmap.createScaledBitmap(bit, width, height, true);
     }
 
@@ -336,13 +355,14 @@ public class IMGCompression {
         ByteArrayOutputStream stream = new ByteArrayOutputStream();
         int options = 100;
         bitmap.compress(Bitmap.CompressFormat.JPEG, options, stream);
-
+        Log.e("质量压缩--开始", size + "kb--" + stream.toByteArray().length / 1024 + "kb");
         while (stream.toByteArray().length / 1024 > size && options > 6) {
+
             stream.reset();
             options -= 6;
             bitmap.compress(Bitmap.CompressFormat.JPEG, options, stream);
         }
-
+        Log.e("质量压缩--"+options,size+"kb--"+stream.toByteArray().length / 1024+"kb");
         try {
             FileOutputStream fos = new FileOutputStream(filePath);
             fos.write(stream.toByteArray());
