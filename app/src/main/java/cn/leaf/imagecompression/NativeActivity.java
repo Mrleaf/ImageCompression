@@ -103,19 +103,17 @@ public class NativeActivity extends Activity {
     private void getBitmap(File file){
         Glide.with(this).load(file.getPath()).into(image);
         String str =  file.getName().substring(0, file.getName().indexOf("."));
-        Log.e("图片压缩--1", new Date() + "");
         IMGCompression.get(this).loadFile(file)
                 .setSavePath(MainActivity.dir + "/" + str + ".jpg")
                 .setListener(new OnCompressionListener() {
                     @Override
                     public void onStart(){
 //                        thumbImage.setImageBitmap(null);
-                        thumbFileSize.setText("");
-                        thumbImageSize.setText("");
+                        thumbFileSize.setText("1");
+                        thumbImageSize.setText("1");
                     }
                     @Override
                     public void onSuccess(File file) {
-                        Log.e("图片压缩--4", new Date()+"");
                         Glide.with(NativeActivity.this).load(file.getPath()).into(thumbImage);
                         thumbFileSize.setText(file.length() / 1024 + "k");
                         thumbImageSize.setText(Util.getImageSize(file.getPath())[0] + " * "
@@ -127,7 +125,8 @@ public class NativeActivity extends Activity {
                         Log.e("---", e.getMessage());
                     }
                 }).start();
-        Log.e("图片压缩--2", new Date()+"");
+
+
     }
 
 }

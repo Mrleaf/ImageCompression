@@ -118,6 +118,8 @@ public class IMGCompression {
 //
 //        return null;
 //    }
+
+
     /**
      * 图片压缩
      * @param file
