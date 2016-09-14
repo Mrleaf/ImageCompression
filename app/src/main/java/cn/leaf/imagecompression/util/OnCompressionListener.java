@@ -6,7 +6,10 @@ import java.io.File;
  * Created by lenovo on 2016/9/8.
  */
 public interface OnCompressionListener {
-
+    /**
+     * 开始
+     */
+    void onStart();
     /**
      * 压缩成功
      * @param file

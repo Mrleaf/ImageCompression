@@ -14,7 +14,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.util.Date;
 
 import rx.Observable;
 import rx.android.schedulers.AndroidSchedulers;
@@ -73,16 +72,8 @@ public class IMGCompression {
      * @return
      */
     public IMGCompression start(){
-        Log.e("图片压缩--3", new Date() + "");
-//        try {
-//            File file =  compress(mFile);
-//            if(mListener!=null)
-//                mListener.onSuccess(file);
-//        }catch (Exception e){
-//            if(mListener!=null)
-//                mListener.onError(e);
-//        }
-
+        if(mListener!=null)
+            mListener.onStart();
         Observable.just(mFile)
                 .map(new Func1<File,File>() {
                     @Override
@@ -90,12 +81,12 @@ public class IMGCompression {
                         return compress(file);
                     }
                 })
-                .subscribeOn(Schedulers.io())
-                .observeOn(AndroidSchedulers.mainThread())
+                .subscribeOn(Schedulers.io())// 指定 subscribe() 发生在 IO 线程
+                .observeOn(AndroidSchedulers.mainThread())// 指定 Subscriber 的回调发生在主线程
                 .doOnError(new Action1<Throwable>() {
                     @Override
                     public void call(Throwable throwable) {
-                        if(mListener!=null)
+                        if (mListener != null)
                             mListener.onError(throwable);
                     }
                 })
@@ -218,15 +209,12 @@ public class IMGCompression {
      */
     private int[] getImageSize(String imagePath) {
         int[] res = new int[2];
-
         BitmapFactory.Options options = new BitmapFactory.Options();
         options.inJustDecodeBounds = true;
         options.inSampleSize = 1;
         BitmapFactory.decodeFile(imagePath, options);
-
         res[0] = options.outWidth;
         res[1] = options.outHeight;
-
         return res;
     }
 

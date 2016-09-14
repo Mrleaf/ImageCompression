@@ -104,10 +104,15 @@ public class NativeActivity extends Activity {
         Glide.with(this).load(file.getPath()).into(image);
         String str =  file.getName().substring(0, file.getName().indexOf("."));
         Log.e("图片压缩--1", new Date() + "");
-
         IMGCompression.get(this).loadFile(file)
                 .setSavePath(MainActivity.dir + "/" + str + ".jpg")
                 .setListener(new OnCompressionListener() {
+                    @Override
+                    public void onStart(){
+//                        thumbImage.setImageBitmap(null);
+                        thumbFileSize.setText("");
+                        thumbImageSize.setText("");
+                    }
                     @Override
                     public void onSuccess(File file) {
                         Log.e("图片压缩--4", new Date()+"");
