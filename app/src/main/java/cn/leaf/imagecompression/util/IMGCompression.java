@@ -167,47 +167,7 @@ public class IMGCompression {
 
         }
 
-//        if (scale <= 1 && scale > 0.5625) {
-//            if (height < 1664) {
-//                if (file.length() / 1024 < 150) return file;
-//
-//                size = (width * height) / Math.pow(1664, 2) * 150;
-//                size = size < 60 ? 60 : size;
-//            } else if (height >= 1664 && height < 4990) {
-//                thumbW = width / 2;
-//                thumbH = height / 2;
-//                size = (thumbW * thumbH) / Math.pow(2495, 2) * 300;
-//                size = size < 60 ? 60 : size;
-//            } else if (height >= 4990 && height < 10240) {
-//                thumbW = width / 4;
-//                thumbH = height / 4;
-//                size = (thumbW * thumbH) / Math.pow(2560, 2) * 300;
-//                size = size < 100 ? 100 : size;
-//            } else {
-//                int multiple = height / 1280 == 0 ? 1 : height / 1280;
-//                thumbW = width / multiple;
-//                thumbH = height / multiple;
-//                size = (thumbW * thumbH) / Math.pow(2560, 2) * 300;
-//                size = size < 100 ? 100 : size;
-//            }
-//        } else if (scale <= 0.5625 && scale > 0.5) {
-//            if (height < 1280 && file.length() / 1024 < 200) return file;
-//
-//            int multiple = height / 1280 == 0 ? 1 : height / 1280;
-//            thumbW = width / multiple;
-//            thumbH = height / multiple;
-//            size = (thumbW * thumbH) / (1440.0 * 2560.0) * 400;
-//            size = size < 100 ? 100 : size;
-//        } else {
-//            int multiple = (int) Math.ceil(height / (1280.0 / scale));
-//            thumbW = width / multiple;
-//            thumbH = height / multiple;
-//            size = ((thumbW * thumbH) / (1280.0 * (1280 / scale))) * 500;
-//            size = size < 100 ? 100 : size;
-//        }
-
-
-        return compress(filePath, thumb, thumbW, thumbH, angle, (long) size);
+        return compress(file,filePath, thumb, thumbW, thumbH, angle, (long) size);
     }
 
 
@@ -273,7 +233,6 @@ public class IMGCompression {
         }
         options.inJustDecodeBounds = false;
         Bitmap bit =  BitmapFactory.decodeFile(imagePath, options);
-        Log.e("文件大小=--"+options.inSampleSize,bit.getRowBytes() * bit.getHeight()/1024+"kb");
         return Bitmap.createScaledBitmap(bit, width, height, true);
     }
 
@@ -308,19 +267,23 @@ public class IMGCompression {
     /**
      * 指定参数压缩图片
      *
-     * @param largeImagePath 原图路径
+     * @param originalFile 原图文件
+     * @param originalPath 原图路径
      * @param thumbFilePath  保存临时路径
      * @param width
      * @param height
      * @param angle          旋转角度
      * @param size           压缩大小
      */
-    private File compress(String largeImagePath, String thumbFilePath, int width, int height, int angle, long size) {
-        Bitmap thbBitmap = compress(largeImagePath, width, height);
+    private File compress(File originalFile,String originalPath, String thumbFilePath, int width, int height, int angle, long size) {
+        Bitmap thbBitmap = compress(originalPath, width, height);
 
         thbBitmap = rotatingImage(angle, thbBitmap);
-
-        return saveImage(thumbFilePath, thbBitmap, size);
+        File file = saveImage(thumbFilePath, thbBitmap, size);
+        if(originalFile.length()<=file.length())
+            return originalFile;
+        else
+            return file;
     }
 
     /**
@@ -349,20 +312,15 @@ public class IMGCompression {
             return null;
         }
         File result = new File(filePath.substring(0, filePath.lastIndexOf("/")));
-
         if (!result.exists() && !result.mkdirs()) return null;
-
         ByteArrayOutputStream stream = new ByteArrayOutputStream();
         int options = 100;
         bitmap.compress(Bitmap.CompressFormat.JPEG, options, stream);
-        Log.e("质量压缩--开始", size + "kb--" + stream.toByteArray().length / 1024 + "kb");
-        while (stream.toByteArray().length / 1024 > size && options > 6) {
-
+        while (stream.toByteArray().length / 1024 > size && options > 50) {
             stream.reset();
             options -= 6;
             bitmap.compress(Bitmap.CompressFormat.JPEG, options, stream);
         }
-        Log.e("质量压缩--"+options,size+"kb--"+stream.toByteArray().length / 1024+"kb");
         try {
             FileOutputStream fos = new FileOutputStream(filePath);
             fos.write(stream.toByteArray());

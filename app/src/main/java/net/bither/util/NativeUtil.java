@@ -20,6 +20,7 @@ import android.graphics.Bitmap;
 import android.graphics.Bitmap.Config;
 import android.graphics.Canvas;
 import android.graphics.Rect;
+import android.os.Build;
 import android.util.Log;
 
 public class NativeUtil {
@@ -47,6 +48,14 @@ public class NativeUtil {
 		Rect rect = new Rect(0, 0, bit.getWidth(), bit.getHeight());// original
 		rect = new Rect(0, 0, bit.getWidth() / be, bit.getHeight() / be);// 缩小3倍
 		canvas.drawBitmap(bit, null, rect, null);
+		int x = 0;
+		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB_MR1) {
+			x=result.getByteCount();
+		}else{
+			x=result.getRowBytes() * result.getHeight();
+		}
+
+		Log.e("jpeg---"+be,x/1024+"");
 		saveBitmap(result, quality, fileName, optimize);
 		result.recycle();
 	}
