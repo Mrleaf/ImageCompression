@@ -82,6 +82,7 @@ public class IMGCompression {
 //            if(mListener!=null)
 //                mListener.onError(e);
 //        }
+        
         Observable.just(mFile)
                 .map(new Func1<File,File>() {
                     @Override
