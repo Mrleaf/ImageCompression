@@ -14,6 +14,13 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.Date;
+
+import rx.Observable;
+import rx.android.schedulers.AndroidSchedulers;
+import rx.functions.Action1;
+import rx.functions.Func1;
+import rx.schedulers.Schedulers;
 
 /**
  * 图片压缩
@@ -66,14 +73,45 @@ public class IMGCompression {
      * @return
      */
     public IMGCompression start(){
-        try {
-            File file =  compress(mFile,mSavePath);
-            if(mListener!=null)
-                mListener.onSuccess(file);
-        }catch (Exception e){
-            if(mListener!=null)
-                mListener.onError(e);
-        }
+        Log.e("图片压缩--3", new Date() + "");
+//        try {
+//            File file =  compress(mFile);
+//            if(mListener!=null)
+//                mListener.onSuccess(file);
+//        }catch (Exception e){
+//            if(mListener!=null)
+//                mListener.onError(e);
+//        }
+        Observable.just(mFile)
+                .map(new Func1<File,File>() {
+                    @Override
+                    public File call(File file) {
+                        return compress(file);
+                    }
+                })
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .doOnError(new Action1<Throwable>() {
+                    @Override
+                    public void call(Throwable throwable) {
+                        if(mListener!=null)
+                            mListener.onError(throwable);
+                    }
+                })
+                .onErrorResumeNext(Observable.<File>empty())
+                .filter(new Func1<File, Boolean>() {
+                    @Override
+                    public Boolean call(File file) {
+                        return file != null;
+                    }
+                })
+                .subscribe(new Action1<File>() {
+                    @Override
+                    public void call(File file) {
+                        if(mListener!=null)
+                            mListener.onSuccess(file);
+                    }
+                });
         return this;
     }
 //    private static File getPhotoCacheDir(Context context, String cacheName) {
@@ -91,10 +129,10 @@ public class IMGCompression {
     /**
      * 图片压缩
      * @param file
-     * @param thumb
      * @return
      */
-    private File compress(@NonNull File file,@NonNull String thumb) {
+    private File compress(@NonNull File file) {
+        String thumb = mSavePath;
         double size;
         String filePath = file.getAbsolutePath();
         int angle = getImageSpinAngle(filePath);
