@@ -1,21 +1,29 @@
 package cn.leaf.imagecompression;
 
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Environment;
 import android.provider.MediaStore;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
+import android.widget.BaseAdapter;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.ListView;
 import android.widget.TextView;
 
 import com.bumptech.glide.Glide;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 import cn.leaf.imagecompression.util.IMGCompression;
 import cn.leaf.imagecompression.util.OnCompressionListener;
@@ -25,19 +33,23 @@ import cn.leaf.imagecompression.util.Util;
  * Created by leaf on 2016/9/7.
  */
 public class NativeActivity extends Activity {
-    private TextView fileSize,imageSize,thumbFileSize,thumbImageSize;
-    private ImageView image,thumbImage;
+    private TextView fileSize,imageSize;
+    private ImageView image;
+    private ListView listView;
     private Button button,button1;
+    private NativeAdapter adapter;
+    private List<File> dataList;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_libjpeg);
+        setContentView(R.layout.activity_native);
+        dataList = new ArrayList<File>();
         fileSize = (TextView) findViewById(R.id.file_size);
         imageSize = (TextView) findViewById(R.id.image_size);
-        thumbFileSize = (TextView) findViewById(R.id.thumb_file_size);
-        thumbImageSize = (TextView) findViewById(R.id.thumb_image_size);
         image = (ImageView) findViewById(R.id.image);
-        thumbImage = (ImageView) findViewById(R.id.thumb_image);
+        listView = (ListView) findViewById(R.id.list);
+        adapter = new NativeAdapter(dataList,this);
+        listView.setAdapter(adapter);
         button = (Button)findViewById(R.id.but);
         button1 = (Button)findViewById(R.id.but1);
         button1.setOnClickListener(new View.OnClickListener() {
@@ -102,22 +114,28 @@ public class NativeActivity extends Activity {
 
     private void getBitmap(File file){
         Glide.with(this).load(file.getPath()).into(image);
+        //单张图片
+//        one(file);
+        //多张图片
+        more(file);
+    }
+    private void one(File file){
         String str =  file.getName().substring(0, file.getName().indexOf("."));
+
         IMGCompression.get(this).loadFile(file)
-                .setSavePath(MainActivity.dir + "/" + str + ".jpg")
+                .setSavePath(MainActivity.dir + "/" + str + ".jpg")//单张路径（不填也有默认路径）
                 .setListener(new OnCompressionListener() {
                     @Override
-                    public void onStart(){
-//                        thumbImage.setImageBitmap(null);
-                        thumbFileSize.setText("1");
-                        thumbImageSize.setText("1");
+                    public void onStart() {
+                        dataList.clear();
+                        adapter.notifyDataSetChanged();
                     }
+
                     @Override
-                    public void onSuccess(File file) {
-                        Glide.with(NativeActivity.this).load(file.getPath()).into(thumbImage);
-                        thumbFileSize.setText(file.length() / 1024 + "k");
-                        thumbImageSize.setText(Util.getImageSize(file.getPath())[0] + " * "
-                                + Util.getImageSize(file.getPath())[1]);
+                    public void onSuccess(List<File> fileList) {
+                        dataList.addAll(fileList);
+                        Log.e("---", dataList.size() + "");
+                        adapter.notifyDataSetChanged();
                     }
 
                     @Override
@@ -125,8 +143,89 @@ public class NativeActivity extends Activity {
                         Log.e("---", e.getMessage());
                     }
                 }).start();
-
-
     }
+    private void more(File file){
+        List<File> list = new ArrayList<File>();
+        list.add(file);
+        File temp = new File(Environment.getExternalStorageDirectory()+ "/test/test","/41.jpg");
+        list.add(temp);
+        temp = new File(Environment.getExternalStorageDirectory()+ "/test/test","/18.png");
+        list.add(temp);
+        temp = new File(Environment.getExternalStorageDirectory()+ "/test/test","/21.jpg");
+        list.add(temp);
+        temp = new File(Environment.getExternalStorageDirectory()+ "/test/test","/56.png");
+        list.add(temp);
 
+
+        IMGCompression.get(this).loadFile(list)
+                .setListener(new OnCompressionListener() {
+                    @Override
+                    public void onStart() {
+                        dataList.clear();
+                        adapter.notifyDataSetChanged();
+                    }
+
+                    @Override
+                    public void onSuccess(List<File> fileList) {
+                        dataList.addAll(fileList);
+                        Log.e("---", dataList.size() + "");
+                        adapter.notifyDataSetChanged();
+                    }
+
+                    @Override
+                    public void onError(Throwable e) {
+                        Log.e("---", e.getMessage());
+                    }
+                }).start();
+    }
+    public class NativeAdapter extends BaseAdapter {
+
+        private Context mContext;
+        private List<File> mListData;
+        public NativeAdapter(List<File> listData, Context context) {
+            this.mContext = context;
+            this.mListData = listData;
+        }
+        @Override
+        public int getCount() {
+            return mListData!=null?mListData.size():0;
+        }
+
+        @Override
+        public Object getItem(int position) {
+            return mListData.get(position);
+        }
+
+        @Override
+        public long getItemId(int position) {
+            return position;
+        }
+
+        @Override
+        public View getView(int position, View convertView, ViewGroup parent) {
+            ViewHoder hoder;
+            if (convertView == null) {
+                hoder = new ViewHoder();
+                convertView = LayoutInflater.from(mContext).inflate(R.layout.activity_native_item, null);
+                hoder.mImageView = (ImageView)convertView.findViewById(R.id.imgView);
+                hoder.thumbFileSize = (TextView) convertView.findViewById(R.id.thumb_file_size);
+                hoder.thumbImageSize = (TextView) convertView.findViewById(R.id.thumb_image_size);
+                convertView.setTag(hoder);
+            } else {
+                hoder = (ViewHoder) convertView.getTag();
+            }
+            File file = mListData.get(position);
+            Log.e("图片路径--"+position, file.getPath());
+            Glide.with(NativeActivity.this).load(file.getPath()).into(hoder.mImageView);
+            hoder.thumbFileSize.setText(file.length() / 1024 + "kb");
+            hoder.thumbImageSize.setText(Util.getImageSize(file.getPath())[0] + " * "
+                    + Util.getImageSize(file.getPath())[1]);
+            return convertView;
+        }
+
+        public class ViewHoder {
+          ImageView mImageView;
+          TextView thumbFileSize,thumbImageSize;
+        }
+    }
 }

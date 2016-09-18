@@ -1,6 +1,7 @@
 package cn.leaf.imagecompression.util;
 
 import java.io.File;
+import java.util.List;
 
 /**
  * Created by lenovo on 2016/9/8.
@@ -14,7 +15,7 @@ public interface OnCompressionListener {
      * 压缩成功
      * @param file
      */
-    void onSuccess(File file);
+    void onSuccess(List<File> file);
 
     /**
      * 压缩失败

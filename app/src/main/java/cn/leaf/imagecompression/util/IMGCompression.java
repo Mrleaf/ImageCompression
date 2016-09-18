@@ -3,9 +3,7 @@ package cn.leaf.imagecompression.util;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.graphics.Canvas;
 import android.graphics.Matrix;
-import android.graphics.Rect;
 import android.media.ExifInterface;
 import android.support.annotation.NonNull;
 import android.util.Log;
@@ -14,6 +12,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 import rx.Observable;
 import rx.android.schedulers.AndroidSchedulers;
@@ -27,13 +27,21 @@ import rx.schedulers.Schedulers;
  */
 public class IMGCompression {
     private static final String TAG = "IMGCompression";
+    private static String DISK_CACHE = "disk_cache";
     private OnCompressionListener mListener;
     private File mFile;
+    private List<File> mFileList;
+    private final File mCacheDir;
     private String mSavePath;
     private static IMGCompression IMG;
+
+    public IMGCompression(File mCacheDir) {
+        this.mCacheDir = mCacheDir;
+    }
+
     public static IMGCompression get(Context context){
         if(IMG==null)
-            IMG = new IMGCompression();
+            IMG = new IMGCompression(getPhotoCacheDir(context,DISK_CACHE));
         return IMG;
     }
 
@@ -44,6 +52,16 @@ public class IMGCompression {
      */
     public IMGCompression loadFile(File file){
         this.mFile = file;
+        return this;
+    }
+
+    /**
+     * 要压缩的文件 批量
+     * @param fileList
+     * @return
+     */
+    public IMGCompression loadFile(List<File> fileList){
+        this.mFileList = fileList;
         return this;
     }
 
@@ -74,50 +92,93 @@ public class IMGCompression {
     public IMGCompression start(){
         if(mListener!=null)
             mListener.onStart();
-        Observable.just(mFile)
-                .map(new Func1<File,File>() {
-                    @Override
-                    public File call(File file) {
-                        return compress(file);
-                    }
-                })
-                .subscribeOn(Schedulers.io())// 指定 subscribe() 发生在 IO 线程
-                .observeOn(AndroidSchedulers.mainThread())// 指定 Subscriber 的回调发生在主线程
-                .doOnError(new Action1<Throwable>() {
-                    @Override
-                    public void call(Throwable throwable) {
-                        if (mListener != null)
-                            mListener.onError(throwable);
-                    }
-                })
-                .onErrorResumeNext(Observable.<File>empty())
-                .filter(new Func1<File, Boolean>() {
-                    @Override
-                    public Boolean call(File file) {
-                        return file != null;
-                    }
-                })
-                .subscribe(new Action1<File>() {
-                    @Override
-                    public void call(File file) {
-                        if(mListener!=null)
-                            mListener.onSuccess(file);
-                    }
-                });
+        if(mFile!=null){
+            Observable.just(mFile)
+                    .map(new Func1<File,File>() {
+                        @Override
+                        public File call(File file) {
+                            return compress(file);
+                        }
+                    })
+                    .subscribeOn(Schedulers.io())// 指定 subscribe() 发生在 IO 线程
+                    .observeOn(AndroidSchedulers.mainThread())// 指定 Subscriber 的回调发生在主线程
+                    .doOnError(new Action1<Throwable>() {
+                        @Override
+                        public void call(Throwable throwable) {
+                            if (mListener != null)
+                                mListener.onError(throwable);
+                        }
+                    })
+                    .onErrorResumeNext(Observable.<File>empty())
+                    .filter(new Func1<File, Boolean>() {
+                        @Override
+                        public Boolean call(File file) {
+                            return file != null;
+                        }
+                    })
+                    .subscribe(new Action1<File>() {
+                        @Override
+                        public void call(File file) {
+                            if(mListener!=null){
+                                List<File> list = new ArrayList<File>();
+                                list.add(file);
+                                mListener.onSuccess(list);
+                            }
+
+                        }
+                    });
+        }else if(mFileList!=null&&mFileList.size()>0){
+            Observable.just(mFileList)
+                    .map(new Func1<List<File>,List<File>>() {
+                        @Override
+                        public List<File> call(List<File> fileList) {
+                            List<File> list = new ArrayList<File>();
+                            for(File file:fileList){
+                                list.add(compress(file));
+                            }
+                            return list;
+                        }
+                    })
+                    .subscribeOn(Schedulers.io())// 指定 subscribe() 发生在 IO 线程
+                    .observeOn(AndroidSchedulers.mainThread())// 指定 Subscriber 的回调发生在主线程
+                    .doOnError(new Action1<Throwable>() {
+                        @Override
+                        public void call(Throwable throwable) {
+                            if (mListener != null)
+                                mListener.onError(throwable);
+                        }
+                    })
+                    .onErrorResumeNext(Observable.<List<File>>empty())
+                    .filter(new Func1<List<File>, Boolean>() {
+                        @Override
+                        public Boolean call(List<File> file) {
+                            return file != null;
+                        }
+                    })
+                    .subscribe(new Action1<List<File>>() {
+                        @Override
+                        public void call(List<File> file) {
+                            if (mListener != null)
+                                mListener.onSuccess(file);
+                        }
+                    });
+        }
+
+
         return this;
     }
-//    private static File getPhotoCacheDir(Context context, String cacheName) {
-//        File cacheDir = context.getCacheDir();
-//        if (cacheDir != null) {
-//            File result = new File(cacheDir, cacheName);
-//            if (!result.mkdirs() && (!result.exists() || !result.isDirectory())) {
-//                return null;
-//            }
-//            return result;
-//        }
-//
-//        return null;
-//    }
+
+    private static File getPhotoCacheDir(Context context, String cacheName) {
+        File cacheDir = context.getCacheDir();
+        if (cacheDir != null) {
+            File result = new File(cacheDir, cacheName);
+            if (!result.mkdirs() && (!result.exists() || !result.isDirectory())) {
+                return null;
+            }
+            return result;
+        }
+        return null;
+    }
 
 
     /**
@@ -127,6 +188,9 @@ public class IMGCompression {
      */
     private File compress(@NonNull File file) {
         String thumb = mSavePath;
+        if(Util.isEmpty(mSavePath)){
+            thumb = mCacheDir.getAbsolutePath() + File.separator + System.currentTimeMillis()+".jpg";
+        }
         double size;
         String filePath = file.getAbsolutePath();
         int angle = getImageSpinAngle(filePath);
