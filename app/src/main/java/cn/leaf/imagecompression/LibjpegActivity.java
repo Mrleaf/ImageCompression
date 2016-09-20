@@ -26,7 +26,8 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
-import cn.leaf.imagecompression.util.Util;
+import cn.leaf.ximage.Util;
+
 
 /**
  * Created by leaf on 2016/9/7.

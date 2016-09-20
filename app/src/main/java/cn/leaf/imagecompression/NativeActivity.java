@@ -22,12 +22,12 @@ import com.bumptech.glide.Glide;
 
 import java.io.File;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
-import cn.leaf.imagecompression.util.IMGCompression;
-import cn.leaf.imagecompression.util.OnCompressionListener;
-import cn.leaf.imagecompression.util.Util;
+import cn.leaf.ximage.IMGCompression;
+import cn.leaf.ximage.OnCompressionListener;
+import cn.leaf.ximage.Util;
+
 
 /**
  * Created by leaf on 2016/9/7.
@@ -115,9 +115,9 @@ public class NativeActivity extends Activity {
     private void getBitmap(File file){
         Glide.with(this).load(file.getPath()).into(image);
         //单张图片
-//        one(file);
+        one(file);
         //多张图片
-        more(file);
+//        more(file);
     }
     private void one(File file){
         String str =  file.getName().substring(0, file.getName().indexOf("."));
